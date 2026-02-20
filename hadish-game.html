@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>חדיש - משחק המתנות</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E84040;
+    --blue: #4A90D9;
+    --yellow: #F5C842;
+    --green: #5CB85C;
+    --orange: #F0872A;
+    --teal: #3ABFBF;
+    --dark: #2C2C2C;
+    --light: #FFF8F0;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: var(--light);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    touch-action: none;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .screen.hidden { display:none; }
+
+  /* ===== START SCREEN ===== */
+  #startScreen {
+    background: linear-gradient(160deg, #FFF1DC 0%, #FFE0F0 50%, #E0F0FF 100%);
+  }
+  .store-bg {
+    position:absolute; inset:0;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 60px),
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 60px);
+  }
+  .shelf {
+    position:absolute; bottom:0; left:0; right:0; height:140px;
+    background: linear-gradient(180deg, #8B5E3C 0%, #6B3F1E 100%);
+    border-top: 6px solid #A0703A;
+  }
+  .shelf-items {
+    position:absolute; top:-60px; left:0; right:0;
+    display:flex; justify-content:space-around; align-items:flex-end;
+    padding: 0 20px;
+    font-size: 2.5rem;
+  }
+  .start-content {
+    position:relative; z-index:10;
+    display:flex; flex-direction:column; align-items:center;
+    gap:20px; padding:20px;
+    margin-bottom: 140px;
+  }
+  .logo-container {
+    background: white;
+    border-radius: 20px;
+    padding: 15px 30px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    animation: float 3s ease-in-out infinite;
+  }
+  .logo-container img { height: 90px; }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .game-title {
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 900;
+    color: var(--dark);
+    text-align: center;
+    line-height: 1.2;
+  }
+  .game-title span { color: var(--red); }
+  .game-desc {
+    font-size: 1rem;
+    color: #666;
+    text-align: center;
+    max-width: 320px;
+    line-height: 1.6;
+  }
+  .btn-start {
+    background: linear-gradient(135deg, var(--red), var(--orange));
+    color: white;
+    border: none;
+    padding: 16px 50px;
+    border-radius: 50px;
+    font-size: 1.3rem;
+    font-weight: 900;
+    font-family: 'Heebo', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(232,64,64,0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .btn-start:hover { transform: scale(1.05); }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 6px 20px rgba(232,64,64,0.4); }
+    50% { box-shadow: 0 8px 30px rgba(232,64,64,0.7); }
+  }
+  .target-info {
+    background: rgba(255,255,255,0.8);
+    border-radius: 15px;
+    padding: 12px 25px;
+    font-size: 0.95rem;
+    color: #555;
+    text-align: center;
+    border: 2px dashed #ddd;
+  }
+  .target-info strong { color: var(--red); }
+
+  /* ===== GAME SCREEN ===== */
+  #gameScreen {
+    background: linear-gradient(180deg, #87CEEB 0%, #B0E0FF 30%, #E8F5E8 100%);
+  }
+  .sky-clouds {
+    position:absolute; top:0; left:0; right:0; height:200px;
+    pointer-events:none;
+  }
+  .cloud {
+    position:absolute;
+    background:white;
+    border-radius:50px;
+    opacity:0.8;
+  }
+  .ground {
+    position:absolute; bottom:0; left:0; right:0; height:80px;
+    background: linear-gradient(180deg, #6DB870 0%, #4A9645 100%);
+    border-top: 6px solid #7EC97B;
+  }
+  .ground::before {
+    content:'';
+    position:absolute; top:-20px; left:0; right:0; height:20px;
+    background: repeating-linear-gradient(90deg, #6DB870 0px, #6DB870 30px, #5AA855 30px, #5AA855 60px);
+    border-radius: 50% 50% 0 0 / 20px 20px 0 0;
+  }
+
+  /* HUD */
+  .hud {
+    position:absolute; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 8px 15px;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 3px solid rgba(0,0,0,0.1);
+    z-index: 100;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .hud-logo img { height: 38px; }
+  .hud-score {
+    font-size: clamp(0.85rem, 2.5vw, 1rem);
+    font-weight: 900;
+    color: var(--dark);
+    text-align:center;
+    flex:1;
+  }
+  .hud-score .score-num {
+    font-size: clamp(1.1rem, 3vw, 1.4rem);
+    color: var(--red);
+  }
+  .progress-bar-wrap {
+    width: clamp(80px, 20vw, 150px);
+    background: #eee;
+    border-radius: 10px;
+    height: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--yellow));
+    border-radius: 10px;
+    transition: width 0.3s;
+  }
+
+  /* CANVAS */
+  #gameCanvas {
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    cursor: none;
+  }
+
+  /* ===== WIN SCREEN ===== */
+  #winScreen {
+    background: linear-gradient(160deg, #FFF9E6 0%, #FFE8F5 100%);
+    z-index: 200;
+  }
+  .win-content {
+    display:flex; flex-direction:column; align-items:center;
+    gap:20px; padding:25px; text-align:center;
+    position:relative; z-index:2;
+  }
+  .win-trophy { font-size: 5rem; animation: bounce 0.8s ease infinite alternate; }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
+  .win-title {
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
+    font-weight: 900;
+    color: var(--dark);
+  }
+  .coupon-box {
+    background: white;
+    border: 3px dashed var(--red);
+    border-radius: 20px;
+    padding: 20px 35px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    max-width: 340px;
+  }
+  .coupon-label { font-size:0.9rem; color:#888; margin-bottom:5px; }
+  .coupon-code {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--red);
+    letter-spacing: 2px;
+  }
+  .coupon-desc { font-size: 0.95rem; color: #555; margin-top:8px; line-height:1.5; }
+  .final-score { font-size: 1.1rem; color: #666; }
+  .final-score strong { color: var(--dark); font-size: 1.4rem; }
+  .win-logo img { height: 60px; }
+  .btn-replay {
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    color: white; border: none;
+    padding: 14px 40px; border-radius: 50px;
+    font-size: 1.1rem; font-weight: 700;
+    font-family: 'Heebo', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(74,144,217,0.4);
+    transition: transform 0.15s;
+  }
+  .btn-replay:hover { transform: scale(1.05); }
+  #confettiCanvas {
+    position:absolute; inset:0;
+    pointer-events:none;
+    z-index:1;
+  }
+
+  /* ===== ADMIN SCREEN ===== */
+  #adminScreen {
+    background: #f5f5f5;
+    overflow-y: auto;
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 20px;
+  }
+  .admin-header {
+    display:flex; align-items:center; gap:15px;
+    background:white; border-radius:15px;
+    padding:15px 20px; margin-bottom:20px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.08);
+  }
+  .admin-header img { height:50px; }
+  .admin-header h1 { font-size:1.4rem; font-weight:900; color:var(--dark); }
+  .admin-header small { color:#888; font-size:0.85rem; }
+  .admin-back {
+    margin-right:auto; background:var(--red); color:white;
+    border:none; padding:8px 20px; border-radius:20px;
+    cursor:pointer; font-family:'Heebo',sans-serif; font-weight:700;
+  }
+  .admin-section {
+    background:white; border-radius:15px; padding:20px;
+    margin-bottom:20px; box-shadow:0 2px 10px rgba(0,0,0,0.08);
+  }
+  .admin-section h2 {
+    font-size:1.1rem; font-weight:900; color:var(--dark);
+    margin-bottom:15px; padding-bottom:10px;
+    border-bottom:2px solid #f0f0f0;
+    display:flex; align-items:center; gap:8px;
+  }
+  .admin-field { margin-bottom:15px; }
+  .admin-field label { display:block; font-size:0.9rem; font-weight:700; color:#555; margin-bottom:6px; }
+  .admin-field input, .admin-field textarea {
+    width:100%; border:2px solid #eee; border-radius:10px;
+    padding:10px 14px; font-family:'Heebo',sans-serif; font-size:0.95rem;
+    transition: border-color 0.2s;
+    color: var(--dark);
+  }
+  .admin-field input:focus, .admin-field textarea:focus {
+    outline:none; border-color:var(--red);
+  }
+  .btn-save {
+    background:linear-gradient(135deg,var(--green),#3a9e3a);
+    color:white; border:none; padding:10px 25px;
+    border-radius:20px; cursor:pointer; font-family:'Heebo',sans-serif;
+    font-weight:700; font-size:0.95rem;
+    transition: transform 0.15s;
+  }
+  .btn-save:hover { transform:scale(1.03); }
+  .products-grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(130px,1fr));
+    gap:12px; margin-bottom:15px;
+  }
+  .product-card {
+    background:#f9f9f9; border-radius:12px; padding:10px;
+    text-align:center; border:2px solid #eee;
+    position:relative;
+  }
+  .product-card .product-emoji { font-size:2rem; }
+  .product-card .product-name { font-size:0.8rem; font-weight:700; margin-top:4px; color:var(--dark); }
+  .product-card .product-pts { font-size:0.75rem; color:var(--red); font-weight:700; }
+  .product-card .btn-del {
+    position:absolute; top:4px; left:4px;
+    background:var(--red); color:white; border:none;
+    border-radius:50%; width:20px; height:20px;
+    font-size:0.7rem; cursor:pointer; line-height:20px;
+  }
+  .product-card img.custom-img {
+    width:60px; height:60px; object-fit:contain; border-radius:8px;
+  }
+  .add-product-form {
+    background:#f9f9f9; border-radius:12px; padding:15px;
+    display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end;
+  }
+  @media(max-width:500px) {
+    .add-product-form { grid-template-columns:1fr 1fr; }
+  }
+  .add-product-form .btn-add {
+    background:var(--blue); color:white; border:none;
+    padding:10px 15px; border-radius:10px; cursor:pointer;
+    font-family:'Heebo',sans-serif; font-weight:700; white-space:nowrap;
+  }
+  .upload-zone {
+    border:2px dashed #ccc; border-radius:10px; padding:15px;
+    text-align:center; cursor:pointer; margin-bottom:10px;
+    font-size:0.9rem; color:#888;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .upload-zone:hover { border-color:var(--red); background:#fff5f5; }
+  .upload-zone input { display:none; }
+  .logo-preview {
+    max-height:80px; border-radius:10px;
+    margin-bottom:10px; display:block;
+  }
+  .toast {
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--dark); color:white; padding:12px 25px;
+    border-radius:30px; font-size:0.9rem; z-index:9999;
+    opacity:0; transition:opacity 0.3s;
+    pointer-events:none;
+  }
+  .toast.show { opacity:1; }
+
+  /* admin link */
+  .admin-link {
+    position:fixed; top:10px; left:10px;
+    background:rgba(255,255,255,0.7); backdrop-filter:blur(5px);
+    border-radius:10px; padding:5px 12px;
+    font-size:0.75rem; color:#888; cursor:pointer;
+    z-index:1000; border:none; font-family:'Heebo',sans-serif;
+  }
+  .admin-link:hover { background:white; color:var(--dark); }
+
+  /* falling item popup */
+  .item-popup {
+    position:absolute;
+    background:white;
+    border-radius:8px;
+    padding:3px 8px;
+    font-size:0.75rem;
+    font-weight:700;
+    color:var(--green);
+    box-shadow:0 2px 8px rgba(0,0,0,0.2);
+    pointer-events:none;
+    animation: popFade 1s forwards;
+    z-index:150;
+  }
+  @keyframes popFade {
+    0% { opacity:1; transform: translateY(0) scale(1); }
+    100% { opacity:0; transform: translateY(-40px) scale(1.2); }
+  }
+  .mobile-controls {
+    display:none;
+    position:absolute; bottom:85px; left:0; right:0;
+    justify-content:space-between;
+    padding:0 15px; z-index:110;
+  }
+  .mobile-btn {
+    background:rgba(255,255,255,0.85); backdrop-filter:blur(5px);
+    border:none; border-radius:50%; width:60px; height:60px;
+    font-size:1.5rem; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,0.2);
+    touch-action:manipulation; user-select:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  @media(pointer:coarse) {
+    .mobile-controls { display:flex; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ADMIN LINK (hidden corner button) -->
+<button class="admin-link" onclick="showAdmin()">⚙️ ניהול</button>
+
+<!-- ===== START SCREEN ===== -->
+<div id="startScreen" class="screen">
+  <div class="store-bg"></div>
+  <div class="shelf">
+    <div class="shelf-items">
+      <span>🎁</span><span>🕯️</span><span>🖼️</span><span>☕</span><span>👜</span><span>🎁</span><span>🌸</span>
+    </div>
+  </div>
+  <div class="start-content">
+    <div class="logo-container">
+      <img id="startLogo" src="" alt="חדיש">
+    </div>
+    <div class="game-title">תפוס את<br><span>המתנות!</span> 🎁</div>
+    <div class="game-desc">אסוף מתנות שנופלות מהשמיים לתוך העגלה.<br>הגע ל-<strong>400 נקודות</strong> וקבל קופון מיוחד!</div>
+    <button class="btn-start" onclick="startGame()">🎮 בואו נשחק!</button>
+    <div class="target-info">יעד: <strong id="targetDisplay">400</strong> נקודות = קופון של <strong id="couponPreview">10%</strong> הנחה</div>
+  </div>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div id="gameScreen" class="screen hidden">
+  <div class="sky-clouds" id="skyClouds"></div>
+  <div class="ground"></div>
+  <div class="hud">
+    <div class="hud-logo"><img id="gameLogo" src="" alt="חדיש"></div>
+    <div class="hud-score">
+      ניקוד<br>
+      <span class="score-num" id="scoreDisplay">0</span>/<span id="targetDisplay2">400</span>
+    </div>
+    <div>
+      <div style="font-size:0.7rem;color:#888;text-align:center;margin-bottom:3px;">התקדמות</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progressBar" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+  <div class="mobile-controls">
+    <button class="mobile-btn" id="btnLeft" style="margin-right:auto">⬅️</button>
+    <button class="mobile-btn" id="btnRight" style="margin-left:auto">➡️</button>
+  </div>
+</div>
+
+<!-- ===== WIN SCREEN ===== -->
+<div id="winScreen" class="screen hidden">
+  <canvas id="confettiCanvas"></canvas>
+  <div class="win-content">
+    <div class="win-logo"><img id="winLogo" src="" alt="חדיש"></div>
+    <div class="win-trophy">🏆</div>
+    <div class="win-title">כל הכבוד! ניצחת! 🎉</div>
+    <div class="final-score">אספת <strong id="finalScore">0</strong> נקודות</div>
+    <div class="coupon-box">
+      <div class="coupon-label">🎁 הנה הקופון שלך:</div>
+      <div class="coupon-code" id="winCouponCode">HADISH10</div>
+      <div class="coupon-desc" id="winCouponDesc">10% הנחה על הזמנה באתר<br>חדיש - בית המתנות של חריש</div>
+    </div>
+    <button class="btn-replay" onclick="goHome()">🔄 שחק שוב</button>
+  </div>
+</div>
+
+<!-- ===== ADMIN SCREEN ===== -->
+<div id="adminScreen" class="screen hidden">
+  <div class="admin-header">
+    <img id="adminLogo" src="" alt="">
+    <div>
+      <h1>🛠️ דף ניהול</h1>
+      <small>חדיש - משחק המתנות</small>
+    </div>
+    <button class="admin-back" onclick="showHome()">← חזרה</button>
+  </div>
+
+  <!-- Logo -->
+  <div class="admin-section">
+    <h2>🖼️ לוגו</h2>
+    <label class="upload-zone" id="logoUploadZone">
+      <input type="file" accept="image/*" id="logoFileInput" onchange="handleLogoUpload(event)">
+      <div>לחץ להעלאת לוגו חדש</div>
+      <img id="logoPreviewAdmin" class="logo-preview" style="display:none" src="" alt="">
+    </label>
+    <button class="btn-save" onclick="saveLogo()">💾 שמור לוגו</button>
+  </div>
+
+  <!-- Coupon -->
+  <div class="admin-section">
+    <h2>🎟️ קופון זכייה</h2>
+    <div class="admin-field">
+      <label>קוד קופון</label>
+      <input type="text" id="adminCouponCode" value="HADISH10">
+    </div>
+    <div class="admin-field">
+      <label>תיאור הקופון</label>
+      <textarea id="adminCouponDesc" rows="2">10% הנחה על הזמנה באתר
+חדיש - בית המתנות של חריש</textarea>
+    </div>
+    <div class="admin-field">
+      <label>ניקוד יעד לזכייה</label>
+      <input type="number" id="adminTargetScore" value="400">
+    </div>
+    <div class="admin-field">
+      <label>טקסט אחוז הנחה (לתצוגה במסך פתיחה)</label>
+      <input type="text" id="adminCouponPercent" value="10%">
+    </div>
+    <button class="btn-save" onclick="saveCoupon()">💾 שמור הגדרות קופון</button>
+  </div>
+
+  <!-- Products -->
+  <div class="admin-section">
+    <h2>🎁 מוצרים נופלים</h2>
+    <div class="products-grid" id="productsGrid"></div>
+    <div class="add-product-form">
+      <div class="admin-field" style="margin:0">
+        <label>שם מוצר</label>
+        <input type="text" id="newProductName" placeholder="ספל קרמיקה">
+      </div>
+      <div class="admin-field" style="margin:0">
+        <label>נקודות (10-50)</label>
+        <input type="number" id="newProductPts" placeholder="20" min="5" max="50">
+      </div>
+      <div class="admin-field" style="margin:0">
+        <label>אמוג'י</label>
+        <input type="text" id="newProductEmoji" placeholder="☕" maxlength="2">
+      </div>
+    </div>
+    <label class="upload-zone" style="margin-top:10px" id="productImgZone">
+      <input type="file" accept="image/*" id="productImgInput" onchange="handleProductImg(event)">
+      <div id="productImgLabel">📷 העלה תמונת מוצר (אופציונלי)</div>
+    </label>
+    <button class="btn-save" style="background:linear-gradient(135deg,var(--blue),var(--teal));margin-top:10px" onclick="addProduct()">➕ הוסף מוצר</button>
+  </div>
+
+  <!-- Game settings -->
+  <div class="admin-section">
+    <h2>⚙️ הגדרות משחק</h2>
+    <div class="admin-field">
+      <label>מהירות נפילה (1=איטי, 3=מהיר)</label>
+      <input type="number" id="adminSpeed" value="1.5" min="0.5" max="3" step="0.1">
+    </div>
+    <div class="admin-field">
+      <label>תדירות מתנות (שניות בין נפילות)</label>
+      <input type="number" id="adminFreq" value="1.8" min="0.5" max="4" step="0.1">
+    </div>
+    <button class="btn-save" onclick="saveSettings()">💾 שמור הגדרות</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== STATE ==========
+let gameConfig = {
+  targetScore: 400,
+  couponCode: 'HADISH10',
+  couponDesc: '10% הנחה על הזמנה באתר\nחדיש - בית המתנות של חריש',
+  couponPercent: '10%',
+  speed: 1.5,
+  freq: 1.8,
+  logo: null, // base64
+  products: [
+    { name:'ספל קרמיקה', emoji:'☕', pts:25, img:null },
+    { name:'בלוק עץ', emoji:'🪵', pts:30, img:null },
+    { name:'קנבס', emoji:'🖼️', pts:35, img:null },
+    { name:'מסגרת תמונה', emoji:'🪞', pts:20, img:null },
+    { name:'ארנק גבר', emoji:'👝', pts:25, img:null },
+    { name:'ארנק נשים', emoji:'👜', pts:25, img:null },
+    { name:'מפיץ ריח', emoji:'🌸', pts:15, img:null },
+    { name:'נר', emoji:'🕯️', pts:15, img:null },
+    { name:'מתנה מיוחדת', emoji:'🎁', pts:40, img:null },
+    { name:'פנס לילה', emoji:'🔦', pts:20, img:null },
+  ]
+};
+
+// Load from localStorage
+function loadConfig() {
+  const saved = localStorage.getItem('hadishGameConfig');
+  if (saved) {
+    try { Object.assign(gameConfig, JSON.parse(saved)); } catch(e) {}
+  }
+}
+function saveConfig() {
+  localStorage.setItem('hadishGameConfig', JSON.stringify(gameConfig));
+}
+loadConfig();
+
+// ========== LOGO ==========
+const DEFAULT_LOGO = '/mnt/user-data/uploads/170228.png';
+function getLogo() { return gameConfig.logo || ''; }
+
+function applyLogos() {
+  const src = getLogo();
+  ['startLogo','gameLogo','winLogo','adminLogo'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) {
+      if(src) { el.src = src; el.style.display=''; }
+      else { el.style.display='none'; }
+    }
+  });
+}
+
+// Embed the logo as base64 on load
+window.addEventListener('load', () => {
+  if(!gameConfig.logo) {
+    // Try to load the uploaded logo
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img,0,0);
+      gameConfig.logo = c.toDataURL('image/png');
+      saveConfig();
+      applyLogos();
+    };
+    img.src = '/mnt/user-data/uploads/170228.png';
+    // fallback
+    setTimeout(() => { if(!gameConfig.logo) applyLogos(); }, 500);
+  } else {
+    applyLogos();
+  }
+  updateStartScreen();
+  generateClouds();
+});
+
+function updateStartScreen() {
+  document.getElementById('targetDisplay').textContent = gameConfig.targetScore;
+  document.getElementById('couponPreview').textContent = gameConfig.couponPercent;
+  document.getElementById('targetDisplay2').textContent = gameConfig.targetScore;
+}
+
+// ========== SCREENS ==========
+function showScreen(id) {
+  ['startScreen','gameScreen','winScreen','adminScreen'].forEach(s => {
+    document.getElementById(s).classList.add('hidden');
+  });
+  document.getElementById(id).classList.remove('hidden');
+}
+function showHome() { showScreen('startScreen'); updateStartScreen(); applyLogos(); }
+function showAdmin() { showScreen('adminScreen'); applyLogos(); renderProductsGrid(); loadAdminFields(); }
+function goHome() { stopGame(); showHome(); }
+
+// ========== CLOUDS ==========
+function generateClouds() {
+  const container = document.getElementById('skyClouds');
+  for(let i=0;i<5;i++) {
+    const c = document.createElement('div');
+    c.className='cloud';
+    const w = 80+Math.random()*120, h = 30+Math.random()*20;
+    c.style.cssText = `width:${w}px;height:${h}px;top:${10+Math.random()*100}px;left:${Math.random()*100}%;`;
+    container.appendChild(c);
+  }
+}
+
+// ========== GAME ENGINE ==========
+let canvas, ctx;
+let score=0, running=false;
+let fallingItems=[], lastItemTime=0;
+let cartX=0, cartVx=0;
+let boyX=0;
+let keys={};
+let mobileDir=0;
+let animFrame=null;
+let newProductImgData=null;
+
+function startGame() {
+  showScreen('gameScreen');
+  applyLogos();
+  score=0;
+  fallingItems=[];
+  lastItemTime=0;
+  keys={};
+  mobileDir=0;
+
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  cartX = canvas.width/2;
+  boyX = canvas.width/2;
+
+  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('touchmove', onTouchMove, {passive:false});
+
+  // Mobile buttons
+  const btnL = document.getElementById('btnLeft');
+  const btnR = document.getElementById('btnRight');
+  btnL.addEventListener('pointerdown', ()=>mobileDir=-1);
+  btnR.addEventListener('pointerdown', ()=>mobileDir=1);
+  btnL.addEventListener('pointerup', ()=>mobileDir=0);
+  btnR.addEventListener('pointerup', ()=>mobileDir=0);
+  btnL.addEventListener('pointerleave', ()=>mobileDir=0);
+  btnR.addEventListener('pointerleave', ()=>mobileDir=0);
+
+  window.addEventListener('keydown', e=>keys[e.key]=true);
+  window.addEventListener('keyup', e=>keys[e.key]=false);
+
+  running=true;
+  updateScoreDisplay();
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+function stopGame() {
+  running=false;
+  if(animFrame) cancelAnimationFrame(animFrame);
+  canvas = document.getElementById('gameCanvas');
+  canvas.removeEventListener('mousemove', onMouseMove);
+  canvas.removeEventListener('touchmove', onTouchMove);
+  window.removeEventListener('keydown', e=>keys[e.key]=true);
+  window.removeEventListener('keyup', e=>keys[e.key]=false);
+}
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function onMouseMove(e) {
+  cartX = e.clientX;
+}
+function onTouchMove(e) {
+  e.preventDefault();
+  cartX = e.touches[0].clientX;
+}
+
+let lastTime=0;
+function gameLoop(ts) {
+  if(!running) return;
+  const dt = Math.min((ts-lastTime)/1000, 0.05);
+  lastTime=ts;
+
+  // keyboard/mobile control
+  const speed = 320;
+  if(keys['ArrowLeft'] || keys['a']) cartX -= speed*dt;
+  if(keys['ArrowRight'] || keys['d']) cartX += speed*dt;
+  if(mobileDir !== 0) cartX += mobileDir*speed*dt;
+  cartX = Math.max(50, Math.min(canvas.width-50, cartX));
+  boyX += (cartX-boyX)*0.18;
+
+  // spawn items
+  const freq = gameConfig.freq;
+  if(ts-lastItemTime > freq*1000) {
+    spawnItem();
+    lastItemTime=ts;
+  }
+
+  // update items
+  const groundY = canvas.height - 80;
+  const cartTop = groundY - 55;
+  const cartW = 100;
+
+  fallingItems.forEach(item => {
+    item.y += item.speed * dt;
+    item.rot += dt * item.rotSpeed;
+  });
+
+  // check catches & misses
+  fallingItems = fallingItems.filter(item => {
+    if(item.y > groundY + 50) return false; // gone
+    const inX = Math.abs(item.x - boyX) < cartW*0.6;
+    const inY = item.y >= cartTop && item.y <= cartTop+30;
+    if(inX && inY) {
+      score += item.pts;
+      showPopup(item.x, cartTop, '+'+item.pts);
+      updateScoreDisplay();
+      if(score >= gameConfig.targetScore) {
+        setTimeout(()=>{ stopGame(); showWin(); },300);
+      }
+      return false;
+    }
+    return true;
+  });
+
+  draw(groundY, cartTop, cartW);
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+function spawnItem() {
+  const products = gameConfig.products;
+  const p = products[Math.floor(Math.random()*products.length)];
+  const speedMul = gameConfig.speed;
+  fallingItems.push({
+    x: 60 + Math.random()*(canvas.width-120),
+    y: -40,
+    speed: (80 + Math.random()*60)*speedMul,
+    emoji: p.emoji || '🎁',
+    pts: p.pts,
+    name: p.name,
+    img: p.img || null,
+    rot: 0,
+    rotSpeed: (Math.random()-0.5)*2,
+    size: 44,
+  });
+}
+
+// Preloaded emoji images (offscreen canvas)
+const emojiCache = {};
+function getEmojiCanvas(emoji, size) {
+  const key = emoji+size;
+  if(emojiCache[key]) return emojiCache[key];
+  const c = document.createElement('canvas');
+  c.width=c.height=size;
+  const cx = c.getContext('2d');
+  cx.font = `${size*0.8}px serif`;
+  cx.textAlign='center'; cx.textBaseline='middle';
+  cx.fillText(emoji, size/2, size/2);
+  emojiCache[key]=c;
+  return c;
+}
+
+// Product custom images (preloaded)
+const imgCache = {};
+function getProductImg(src) {
+  if(!src) return null;
+  if(imgCache[src]) return imgCache[src];
+  const i = new Image();
+  i.src=src;
+  imgCache[src]=i;
+  return i;
+}
+
+function draw(groundY, cartTop, cartW) {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Draw falling items
+  fallingItems.forEach(item => {
+    ctx.save();
+    ctx.translate(item.x, item.y);
+    ctx.rotate(item.rot);
+
+    const s = item.size;
+    // Shadow
+    ctx.shadowColor='rgba(0,0,0,0.2)';
+    ctx.shadowBlur=8;
+    ctx.shadowOffsetY=4;
+
+    if(item.img) {
+      const img = getProductImg(item.img);
+      if(img && img.complete) {
+        ctx.drawImage(img, -s/2, -s/2, s, s);
+      } else {
+        drawEmojiItem(ctx, item.emoji, s);
+      }
+    } else {
+      drawEmojiItem(ctx, item.emoji, s);
+    }
+
+    ctx.shadowColor='transparent';
+    ctx.restore();
+  });
+
+  // Draw cart + boy
+  drawCharacter(ctx, boyX, cartTop, cartW);
+}
+
+function drawEmojiItem(ctx, emoji, s) {
+  // Gift box bg
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.roundRect(-s/2, -s/2, s, s, 10);
+  ctx.fill();
+  // emoji
+  ctx.font = `${s*0.65}px serif`;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(emoji, 0, 0);
+}
+
+function drawCharacter(ctx, cx, cartTop, cw) {
+  const groundY = cartTop + 50;
+
+  // Cart body
+  const ch = 45, cr = 10;
+  ctx.fillStyle='#E84040';
+  ctx.strokeStyle='#C02020';
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.roundRect(cx-cw/2, cartTop, cw, ch, cr);
+  ctx.fill(); ctx.stroke();
+
+  // Cart inside
+  ctx.fillStyle='rgba(255,255,255,0.3)';
+  ctx.beginPath();
+  ctx.roundRect(cx-cw/2+6, cartTop+6, cw-12, ch-12, 6);
+  ctx.fill();
+
+  // Wheels
+  [cx-cw*0.3, cx+cw*0.3].forEach(wx => {
+    ctx.fillStyle='#333';
+    ctx.beginPath();
+    ctx.arc(wx, groundY+5, 10, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle='#888';
+    ctx.beginPath();
+    ctx.arc(wx, groundY+5, 5, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // Handle
+  ctx.strokeStyle='#C02020'; ctx.lineWidth=4;
+  ctx.beginPath();
+  ctx.moveTo(cx+cw/2-5, cartTop+5);
+  ctx.lineTo(cx+cw/2+20, cartTop-20);
+  ctx.stroke();
+
+  // Boy body
+  const bx=cx+cw/2+12, headY=cartTop-60;
+
+  // body
+  ctx.fillStyle='#4A90D9';
+  ctx.beginPath();
+  ctx.roundRect(bx-12, headY+22, 24, 30, 6);
+  ctx.fill();
+
+  // head
+  ctx.fillStyle='#FFDAB0';
+  ctx.beginPath();
+  ctx.arc(bx, headY+10, 18, 0, Math.PI*2);
+  ctx.fill();
+
+  // hair
+  ctx.fillStyle='#5C3010';
+  ctx.beginPath();
+  ctx.arc(bx, headY-4, 18, Math.PI, Math.PI*2);
+  ctx.fill();
+
+  // eyes
+  ctx.fillStyle='#333';
+  ctx.beginPath(); ctx.arc(bx-6, headY+8, 3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx+6, headY+8, 3, 0, Math.PI*2); ctx.fill();
+
+  // smile
+  ctx.strokeStyle='#C06020'; ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.arc(bx, headY+14, 7, 0, Math.PI);
+  ctx.stroke();
+
+  // arms
+  ctx.strokeStyle='#4A90D9'; ctx.lineWidth=8; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(bx-12, headY+30);
+  ctx.lineTo(cx+cw/2+2, cartTop+5);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(bx+12, headY+30);
+  ctx.lineTo(bx+25, headY+55);
+  ctx.stroke();
+
+  // legs
+  ctx.strokeStyle='#2C2C8C'; ctx.lineWidth=8;
+  ctx.beginPath(); ctx.moveTo(bx-6, headY+52); ctx.lineTo(bx-8, groundY+12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(bx+6, headY+52); ctx.lineTo(bx+8, groundY+12); ctx.stroke();
+
+  // shoes
+  ctx.fillStyle='#1A1A1A';
+  [bx-8, bx+8].forEach(sx => {
+    ctx.beginPath(); ctx.ellipse(sx, groundY+14, 9, 5, 0, 0, Math.PI*2); ctx.fill();
+  });
+}
+
+function updateScoreDisplay() {
+  const target = gameConfig.targetScore;
+  document.getElementById('scoreDisplay').textContent = score;
+  document.getElementById('targetDisplay2').textContent = target;
+  const pct = Math.min(100, (score/target)*100);
+  document.getElementById('progressBar').style.width = pct+'%';
+}
+
+function showPopup(x, y, text) {
+  const el = document.createElement('div');
+  el.className='item-popup';
+  el.textContent=text;
+  el.style.cssText=`left:${x}px;top:${y-20}px;`;
+  document.getElementById('gameScreen').appendChild(el);
+  setTimeout(()=>el.remove(), 1000);
+}
+
+// ========== WIN SCREEN ==========
+function showWin() {
+  showScreen('winScreen');
+  applyLogos();
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('winCouponCode').textContent = gameConfig.couponCode;
+  document.getElementById('winCouponDesc').textContent = gameConfig.couponDesc;
+  launchConfetti();
+}
+
+function launchConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#E84040','#4A90D9','#F5C842','#5CB85C','#F0872A','#FF69B4','#3ABFBF'];
+  const pieces = Array.from({length:120}, ()=>({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height-canvas.height,
+    w: 8+Math.random()*12, h: 5+Math.random()*8,
+    color: colors[Math.floor(Math.random()*colors.length)],
+    rot: Math.random()*360,
+    rotV: (Math.random()-0.5)*8,
+    vy: 2+Math.random()*3,
+    vx: (Math.random()-0.5)*2,
+  }));
+  let frames=0;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p => {
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+      p.y+=p.vy; p.x+=p.vx; p.rot+=p.rotV;
+      if(p.y>canvas.height+20) { p.y=-20; p.x=Math.random()*canvas.width; }
+    });
+    frames++;
+    if(frames<300) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+
+// ========== ADMIN ==========
+function loadAdminFields() {
+  document.getElementById('adminCouponCode').value = gameConfig.couponCode;
+  document.getElementById('adminCouponDesc').value = gameConfig.couponDesc;
+  document.getElementById('adminTargetScore').value = gameConfig.targetScore;
+  document.getElementById('adminCouponPercent').value = gameConfig.couponPercent;
+  document.getElementById('adminSpeed').value = gameConfig.speed;
+  document.getElementById('adminFreq').value = gameConfig.freq;
+  const logoPreview = document.getElementById('logoPreviewAdmin');
+  if(gameConfig.logo) { logoPreview.src=gameConfig.logo; logoPreview.style.display='block'; }
+}
+
+function renderProductsGrid() {
+  const grid = document.getElementById('productsGrid');
+  grid.innerHTML='';
+  gameConfig.products.forEach((p,i) => {
+    const card = document.createElement('div');
+    card.className='product-card';
+    card.innerHTML=`
+      <button class="btn-del" onclick="deleteProduct(${i})">✕</button>
+      ${p.img ? `<img class="custom-img" src="${p.img}" alt="">` : `<div class="product-emoji">${p.emoji||'🎁'}</div>`}
+      <div class="product-name">${p.name}</div>
+      <div class="product-pts">${p.pts} נק'</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function deleteProduct(i) {
+  gameConfig.products.splice(i,1);
+  saveConfig();
+  renderProductsGrid();
+  showToast('מוצר הוסר');
+}
+
+let newProductImg=null;
+function handleProductImg(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev => {
+    // Resize
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      const maxS=120;
+      const scale=Math.min(maxS/img.width,maxS/img.height);
+      c.width=img.width*scale; c.height=img.height*scale;
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      newProductImg=c.toDataURL('image/png');
+      document.getElementById('productImgLabel').textContent='✅ תמונה נטענה';
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function addProduct() {
+  const name=document.getElementById('newProductName').value.trim();
+  const pts=parseInt(document.getElementById('newProductPts').value)||20;
+  const emoji=document.getElementById('newProductEmoji').value.trim()||'🎁';
+  if(!name) { showToast('נא להזין שם מוצר'); return; }
+  gameConfig.products.push({ name, emoji, pts: Math.max(5,Math.min(50,pts)), img:newProductImg||null });
+  newProductImg=null;
+  document.getElementById('newProductName').value='';
+  document.getElementById('newProductPts').value='';
+  document.getElementById('newProductEmoji').value='';
+  document.getElementById('productImgLabel').textContent='📷 העלה תמונת מוצר (אופציונלי)';
+  document.getElementById('productImgInput').value='';
+  saveConfig();
+  renderProductsGrid();
+  showToast('מוצר נוסף! 🎉');
+}
+
+let newLogoData=null;
+function handleLogoUpload(e) {
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    newLogoData=ev.target.result;
+    const preview=document.getElementById('logoPreviewAdmin');
+    preview.src=newLogoData; preview.style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveLogo() {
+  if(!newLogoData) { showToast('לא נבחר קובץ לוגו'); return; }
+  gameConfig.logo=newLogoData;
+  saveConfig(); applyLogos();
+  showToast('לוגו עודכן! ✅');
+}
+
+function saveCoupon() {
+  gameConfig.couponCode=document.getElementById('adminCouponCode').value;
+  gameConfig.couponDesc=document.getElementById('adminCouponDesc').value;
+  gameConfig.targetScore=parseInt(document.getElementById('adminTargetScore').value)||400;
+  gameConfig.couponPercent=document.getElementById('adminCouponPercent').value;
+  saveConfig(); updateStartScreen();
+  showToast('קופון עודכן! ✅');
+}
+
+function saveSettings() {
+  gameConfig.speed=parseFloat(document.getElementById('adminSpeed').value)||1.5;
+  gameConfig.freq=parseFloat(document.getElementById('adminFreq').value)||1.8;
+  saveConfig();
+  showToast('הגדרות נשמרו! ✅');
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
